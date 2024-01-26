@@ -16,10 +16,8 @@ import {
 export default {
   data() {
     return {
-      overlays: [],
       BMap: null,
       polygon: null,
-      selectedOverlay: [],
       polyLayer: null,
       editPolygon: null,
       scene: null,
@@ -53,13 +51,19 @@ export default {
           ),
         },
       });
-      this.editPolygon = new PolygonEdit(scene);
       this.polygon = polygon;
+      this.editPolygon = new PolygonEdit(scene);
+
+      this.polyLayer = new BMapGL.GeoJSONLayer('poly');
+        this.BMap.addGeoJSONLayer(this.polyLayer);
+        scene.attachSnapSource(this.polyLayer.overlayData);
+
+
       scene.addEventListener("operate-ok", (e) => {
-        this.overlays.push(e.target.overlay);
-        e.target.overlay.addContextMenu(this.getMenu(e.target.overlay)); //覆盖物绑定菜单
+          e.target.overlay.addContextMenu(this.getMenu(e.target.overlay)); //覆盖物绑定菜单
+        this.polyLayer.overlayData.push(e.target.overlay);
         this.polygon.close();
-        if (this.overlays.length > 1) {
+        if (this.polyLayer.overlayData.length > 1) {
           this.formatterOverlay();
         }
       });
@@ -78,6 +82,7 @@ export default {
       return markerMenu;
     },
     removeMarker(e, ee, marker) {
+        this.polyLayer.removeOverlay(marker)
         this.scene.removeOverlay(marker)
     },
     beginEdit(e, ee, marker) {
@@ -90,15 +95,15 @@ export default {
             ele.toGeoJSON(),
             arr[i].toGeoJSON()
           );
-          this.overlays[eleI].updateByGeoJSON(difference);
+          this.polyLayer.overlayData[eleI].updateByGeoJSON(difference);
         }
       }
     },
     formatterOverlay() {
-      for (let i = 0; i < this.overlays.length; i++) {
-        let overlays2 = [...this.overlays];
+      for (let i = 0; i < this.polyLayer.overlayData.length; i++) {
+        let overlays2 = [...this.polyLayer.overlayData];
         overlays2.splice(i, 1);
-        this.overlaysFn(this.overlays[i], overlays2, i);
+        this.overlaysFn(this.polyLayer.overlayData[i], overlays2, i);
       }
     },
     /**
